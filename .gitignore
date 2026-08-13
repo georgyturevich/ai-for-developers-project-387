@@ -1,0 +1,6 @@
+node_modules/
+tsp-output/
+frontend/dist/
+frontend/src/api/schema.d.ts
+playwright-report/
+test-results/

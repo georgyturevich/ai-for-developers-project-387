@@ -1,0 +1,21 @@
+{
+  "name": "cal-bookings-api",
+  "private": true,
+  "version": "0.3.1",
+  "scripts": {
+    "compile": "tsp compile .",
+    "mock": "prism mock -p 4010 tsp-output/@typespec/openapi3/openapi.yaml",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@typespec/compiler": "^1.14.0",
+    "@typespec/http": "^1.14.0",
+    "@typespec/openapi3": "^1.14.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@railway/cli": "5.37.7",
+    "@stoplight/prism-cli": "^5.14.2",
+    "redoc-cli": "^0.13.21"
+  }
+}

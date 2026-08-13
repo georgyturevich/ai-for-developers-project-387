@@ -1,0 +1,33 @@
+# Keep ~500 MB of local artifacts out of the build context. Files the
+# Dockerfile COPYs (package.json/lock, main.tsp, tspconfig.yaml, source dirs)
+# must stay included.
+.git
+.github
+docs
+e2e
+playwright.config.ts
+README.md
+AGENTS.md
+CONTEXT.md
+Makefile
+release-please-config.json
+.release-please-manifest.json
+
+node_modules
+frontend/node_modules
+backend/.venv
+
+frontend/dist
+tsp-output
+playwright-report
+test-results
+
+.pytest_cache
+.ruff_cache
+.hypothesis
+__pycache__
+*.py[cod]
+*.egg-info
+
+*.log
+*.pid
