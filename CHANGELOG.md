@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/georgyturevich/ai-for-developers-project-387/compare/cal-bookings-api-v0.8.0...cal-bookings-api-v0.9.0) (2026-08-30)
+
+
+### Features
+
+* **frontend:** add Russian today/tomorrow day choice labels ([#11](https://github.com/georgyturevich/ai-for-developers-project-387/issues/11)) ([5fd6c20](https://github.com/georgyturevich/ai-for-developers-project-387/commit/5fd6c2039bf1e7dd9675f14336a3e9de3169a643))
+
 ## [0.8.0](https://github.com/georgyturevich/ai-for-developers-project-387/compare/cal-bookings-api-v0.7.0...cal-bookings-api-v0.8.0) (2026-08-30)
 
 
