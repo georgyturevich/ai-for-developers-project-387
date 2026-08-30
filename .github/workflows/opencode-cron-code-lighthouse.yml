@@ -1,0 +1,36 @@
+name: OpenCode Code Audit
+on:
+  schedule:
+    - cron: "57 * * * *" # Every Monday at 9am UTC
+jobs:
+  opencode-review:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Нужен для аутентификации через GitHub Actions
+      contents: read # Достаточно для чтения кода и diff
+      pull-requests: read # Достаточно для чтения данных PR
+      issues: write # Нужно, чтобы оставлять комментарии в PR
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Run Lighthouse
+        run: |
+          npx lighthouse https://cal-bookings-production.up.railway.app/ \
+            --output=json \
+            --output-path=./lighthouse-report.json \
+            --chrome-flags="--headless"
+      - name: Run OpenCode audit
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        with:
+          model: opencode/big-pickle
+          prompt: |
+            Read ./lighthouse-report.json.
+            Compare LCP, CLS, INP with the values in
+            docs/performance-baseline.md.
+            For metrics that degraded by more than 10%,
+            identify likely culprits in recent commits and
+            create an issue with specific recommendations.
