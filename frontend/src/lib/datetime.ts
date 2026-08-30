@@ -62,6 +62,13 @@ export function formatDayLabel(dayKey: string): string {
   return dayLabelFormatter.format(new Date(`${dayKey}T12:00:00Z`));
 }
 
+export function formatDayChoiceLabel(dayKey: string, now: Date = new Date()): string {
+  const today = ownerTodayKey(now);
+  if (dayKey === today) return "Сегодня";
+  if (dayKey === addDays(today, 1)) return "Завтра";
+  return formatDayLabel(dayKey);
+}
+
 export function formatDayAndTimeRange(startIso: string, durationInMinutes: number): string {
   return `${formatDayLabel(dayKeyInOwnerTz(startIso))}, ${formatTimeRange(startIso, durationInMinutes)}`;
 }

@@ -10,7 +10,7 @@ import { NotFoundPage } from "@/pages/not-found-page";
 import {
   OWNER_TIMEZONE_LABEL,
   bookingWindowDays,
-  formatDayLabel,
+  formatDayChoiceLabel,
   formatTimeRange,
   groupByDay,
   ownerTodayKey,
@@ -95,7 +95,7 @@ export function SlotsPage() {
                 setSelectedStart(null);
               }}
             >
-              {formatDayLabel(day)}
+              {formatDayChoiceLabel(day)}
             </Button>
           ))}
         </div>
