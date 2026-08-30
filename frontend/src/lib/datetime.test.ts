@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import {
   bookingWindowDays,
   dayKeyInOwnerTz,
+  formatDayChoiceLabel,
   formatDayLabel,
   formatTimeRange,
   groupByDay,
@@ -82,6 +83,28 @@ describe("formatDayLabel", () => {
 
   test("Saturday renders for a weekend day key", () => {
     expect(formatDayLabel("2026-08-15")).toBe("сб, 15 авг.");
+  });
+});
+
+describe("formatDayChoiceLabel", () => {
+  const now = new Date("2026-08-11T10:00:00Z"); // 13:00 MSK, день владельца — 11 авг.
+
+  test("renders 'Сегодня' for the owner's current day", () => {
+    expect(formatDayChoiceLabel("2026-08-11", now)).toBe("Сегодня");
+  });
+
+  test("renders 'Завтра' for the next owner day", () => {
+    expect(formatDayChoiceLabel("2026-08-12", now)).toBe("Завтра");
+  });
+
+  test("renders 'Завтра' across a month boundary", () => {
+    const monthEnd = new Date("2026-08-31T12:00:00Z"); // день владельца — 31 авг.
+    expect(formatDayChoiceLabel("2026-09-01", monthEnd)).toBe("Завтра");
+    expect(formatDayChoiceLabel("2026-08-31", monthEnd)).toBe("Сегодня");
+  });
+
+  test("falls back to weekday and date for later days", () => {
+    expect(formatDayChoiceLabel("2026-08-13", now)).toBe("чт, 13 авг.");
   });
 });
 

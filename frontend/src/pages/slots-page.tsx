@@ -10,6 +10,7 @@ import { NotFoundPage } from "@/pages/not-found-page";
 import {
   OWNER_TIMEZONE_LABEL,
   bookingWindowDays,
+  formatDayChoiceLabel,
   formatDayLabel,
   formatTimeRange,
   groupByDay,
@@ -90,12 +91,13 @@ export function SlotsPage() {
               key={day}
               variant={day === currentDay ? "default" : "outline"}
               disabled={!slotsByDay.has(day)}
+              title={formatDayLabel(day)}
               onClick={() => {
                 setSelectedDay(day);
                 setSelectedStart(null);
               }}
             >
-              {formatDayLabel(day)}
+              {formatDayChoiceLabel(day)}
             </Button>
           ))}
         </div>
