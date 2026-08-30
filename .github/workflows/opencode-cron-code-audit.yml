@@ -1,5 +1,19 @@
 name: OpenCode Code Audit
 on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: "Task for OpenCode"
+        required: true
+        type: string
+        default: |
+          Review the codebase for TODO, FIXME, and HACK comments.
+          Group them by priority and create an issue with a summary.
+      model:
+        description: "Model to use"
+        required: false
+        default: "opencode/big-pickle"
+        type: string
   schedule:
     - cron: "0 * * * *" 
 jobs:
@@ -20,7 +34,5 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode/big-pickle
-          prompt: |
-            Review the codebase for TODO, FIXME, and HACK comments.
-            Group them by priority and create an issue with a summary.
+          model: ${{ inputs.model }}
+          prompt: ${{ inputs.prompt }}

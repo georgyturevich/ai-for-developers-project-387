@@ -39,7 +39,7 @@ jobs:
             --output=json \
             --output-path=./lighthouse-report.json \
             --chrome-flags="--headless"
-      - name: Run OpenCode audit
+      - name: Run OpenCode Lighthouse report analysis
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
