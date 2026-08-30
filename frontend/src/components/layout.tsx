@@ -23,7 +23,7 @@ export function Layout() {
           <Link to="/owner" className="text-muted-foreground hover:text-foreground hover:underline">
             Владельцу
           </Link>
-          <span className="text-muted-foreground">&copy; Cal Bookings Lab n2</span>
+          <span className="text-muted-foreground">&copy; Cal Bookings Lab N2</span>
         </div>
       </footer>
       <Toaster richColors position="top-center" />
