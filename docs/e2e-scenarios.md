@@ -6,7 +6,7 @@ Owner. Every scenario is written in the domain language (Guest, Owner, Event
 Type, Slot, Booking, Owner Area) and asserted on external behavior only: what the
 Guest or the Owner sees on screen and what the public API returns.
 
-The four scenarios are numbered S1–S4. Tests reference these numbers in their
+The five scenarios are numbered S1–S5. Tests reference these numbers in their
 names.
 
 ## S1 — Guest books a Slot
@@ -48,3 +48,17 @@ Preconditions: the Owner Area is open.
    description and duration — through the Owner Area UI.
 2. The Owner is returned to the catalog.
 3. The Guest catalog offers the new Event Type.
+
+## S5 — a losing Guest sees a conflict, not a success
+
+Two Guests race for the same Slot: both have opened the same Event Type and
+picked the same Slot, and both are on the booking form at the same time.
+
+Preconditions: a dedicated Event Type for this scenario is offered in the
+catalog.
+
+1. The first Guest submits the booking form and lands on the confirmation
+   screen; the Booking is confirmed.
+2. The second Guest submits the booking form for the same Slot.
+3. The second Guest sees a clear conflict message — the Slot was just taken —
+   and is not shown any success or confirmation state.

@@ -12,6 +12,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from cal_bookings import domain
 from cal_bookings.schemas import (
@@ -27,6 +28,48 @@ from cal_bookings.static import SPAStaticFiles
 from cal_bookings.store import DuplicateSlugError, InMemoryStore, SlotUnavailableError
 
 CORS_ALLOWED_ORIGIN = "http://localhost:5173"
+
+MAX_REQUEST_BODY_BYTES = 64 * 1024
+
+
+class RequestBodyTooLarge(Exception):
+    pass
+
+
+class RequestBodySizeLimitMiddleware:
+    """Caps the request body; answers with the contract's 400 validation_failed shape."""
+
+    def __init__(self, app: ASGIApp, max_size: int = MAX_REQUEST_BODY_BYTES) -> None:
+        self.app = app
+        self.max_size = max_size
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        received = 0
+
+        async def limited_receive() -> Message:
+            nonlocal received
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > self.max_size:
+                    raise RequestBodyTooLarge
+            return message
+
+        try:
+            await self.app(scope, limited_receive, send)
+        except RequestBodyTooLarge:
+            response = JSONResponse(
+                status_code=400,
+                content={
+                    "code": "validation_failed",
+                    "message": "Тело запроса превышает лимит в 64 КиБ.",
+                },
+            )
+            await response(scope, receive, send)
 
 
 def http_error(status_code: int, code: str, message: str) -> HTTPException:
@@ -68,6 +111,7 @@ def create_app(clock: Callable[[], datetime] | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(RequestBodySizeLimitMiddleware)
 
     @app.exception_handler(RequestValidationError)
     async def handle_validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:

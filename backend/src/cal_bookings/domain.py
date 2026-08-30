@@ -19,6 +19,8 @@ WINDOW_LENGTH_DAYS = 14  # the current day plus the next 13
 
 GRID_ANCHOR = time(hour=9)
 
+GRID_STEP = timedelta(minutes=30)  # fixed step, independent of Event Type duration
+
 
 @dataclass(frozen=True)
 class EventType:
@@ -67,14 +69,18 @@ def day_end_utc(day: date) -> datetime:
 
 
 def grid_offsets(duration_minutes: int) -> list[timedelta]:
-    """Start offsets from the 09:00 anchor for slots that fit within Business Hours."""
-    step = timedelta(minutes=duration_minutes)
+    """Start offsets from the 09:00 anchor for slots that fit within Business Hours.
+
+    The step is a fixed 30 minutes (GRID_STEP), independent of the Event Type's
+    duration; the duration only decides how late a slot can start and still fit.
+    """
+    slot_duration = timedelta(minutes=duration_minutes)
     day_length = day_end_utc(date.min) - day_anchor_utc(date.min)
     offsets: list[timedelta] = []
     offset = timedelta(0)
-    while offset + step <= day_length:
+    while offset + slot_duration <= day_length:
         offsets.append(offset)
-        offset += step
+        offset += GRID_STEP
     return offsets
 
 
@@ -84,14 +90,14 @@ def day_grid_starts(day: date, duration_minutes: int) -> list[datetime]:
 
 
 def is_valid_grid_start(start: datetime, duration_minutes: int) -> bool:
-    """True when `start` is on the 09:00-anchored grid and its slot fits in Business Hours."""
+    """True when `start` lies on the fixed 30-minute Slot Grid and its slot fits in Business Hours."""
     day = start.astimezone(OWNER_TIMEZONE).date()
     anchor = day_anchor_utc(day)
     if start < anchor:
         return False
     if start + timedelta(minutes=duration_minutes) > day_end_utc(day):
         return False
-    return (start - anchor) % timedelta(minutes=duration_minutes) == timedelta(0)
+    return (start - anchor) % GRID_STEP == timedelta(0)
 
 
 def is_within_window(start: datetime, now: datetime) -> bool:

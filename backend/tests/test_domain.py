@@ -12,8 +12,6 @@ from cal_bookings import domain
 from cal_bookings.domain import EventType, OccupiedInterval
 from tests.conftest import NOW
 
-HOUR = 3600
-
 
 def _group_by_day(starts: list[datetime]) -> dict[date, list[datetime]]:
     groups: dict[date, list[datetime]] = {}
@@ -34,26 +32,35 @@ def test_anchor_and_day_end_are_moscow_0900_1800():
     assert domain.day_end_utc(date(2026, 8, 12)) == datetime(2026, 8, 12, 15, 0, tzinfo=UTC)
 
 
-def test_hourly_grid_has_nine_slots_per_day():
+def test_thirty_minute_grid_has_seventeen_offsets_for_sixty_minute_duration():
     offsets = domain.grid_offsets(60)
-    assert len(offsets) == 9
-    assert [o.seconds // HOUR for o in offsets] == [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    assert len(offsets) == 17
+    assert offsets[1] - offsets[0] == timedelta(minutes=30)
+    assert all(b - a == timedelta(minutes=30) for a, b in pairwise(offsets))
 
 
 def test_540_minute_grid_has_exactly_one_slot():
     assert domain.grid_offsets(540) == [timedelta(0)]
 
 
-def test_ninety_minute_grid_fits_six_slots():
-    assert len(domain.grid_offsets(90)) == 6
+def test_ninety_minute_grid_steps_every_thirty_minutes():
+    offsets = domain.grid_offsets(90)
+    assert len(offsets) == 16
+    assert offsets[-1] + timedelta(minutes=90) == timedelta(hours=9)
+    assert all(b - a == timedelta(minutes=30) for a, b in pairwise(offsets))
 
 
 def test_grid_start_on_anchor_is_valid():
     assert domain.is_valid_grid_start(datetime(2026, 8, 12, 6, 0, tzinfo=UTC), 60)
 
 
+def test_half_hour_start_is_valid_for_sixty_minute_duration():
+    assert domain.is_valid_grid_start(datetime(2026, 8, 12, 6, 30, tzinfo=UTC), 60)
+
+
 def test_grid_start_mid_step_is_invalid():
-    assert not domain.is_valid_grid_start(datetime(2026, 8, 12, 6, 30, tzinfo=UTC), 60)
+    assert not domain.is_valid_grid_start(datetime(2026, 8, 12, 6, 15, tzinfo=UTC), 60)
+    assert not domain.is_valid_grid_start(datetime(2026, 8, 12, 6, 15, tzinfo=UTC), 45)
 
 
 def test_grid_start_before_anchor_is_invalid():
@@ -63,6 +70,7 @@ def test_grid_start_before_anchor_is_invalid():
 def test_grid_start_not_fitting_in_day_is_invalid():
     assert not domain.is_valid_grid_start(datetime(2026, 8, 12, 15, 0, tzinfo=UTC), 60)
     assert not domain.is_valid_grid_start(datetime(2026, 8, 12, 14, 30, tzinfo=UTC), 60)
+    assert not domain.is_valid_grid_start(datetime(2026, 8, 12, 14, 30, tzinfo=UTC), 45)
 
 
 def test_540_minute_slot_is_valid():
@@ -104,14 +112,14 @@ def test_upcoming_boundary():
 # ---------- Slot generation ----------
 
 
-def test_hourly_slots_across_whole_window():
+def test_sixty_minute_slots_step_every_thirty_minutes_across_whole_window():
     starts = domain.generate_slot_starts(event_type(60), NOW)
-    assert len(starts) == 14 * 9
+    assert len(starts) == 14 * 17
     assert starts[0] == NOW
     assert starts[-1] == datetime(2026, 8, 25, 14, 0, tzinfo=UTC)
     for day_starts in _group_by_day(starts).values():
-        assert len(day_starts) == 9
-        assert all(b - a == timedelta(minutes=60) for a, b in pairwise(day_starts))
+        assert len(day_starts) == 17
+        assert all(b - a == timedelta(minutes=30) for a, b in pairwise(day_starts))
 
 
 def test_slots_past_now_are_excluded():
@@ -119,7 +127,23 @@ def test_slots_past_now_are_excluded():
     starts = domain.generate_slot_starts(event_type(60), now)
     assert starts[0] == now
     assert all(start >= now for start in starts)
-    assert len(starts) == 5 + 13 * 9  # 5 left today + 13 full days
+    assert len(starts) == 9 + 13 * 17  # 9 left today + 13 full days
+
+
+def test_forty_five_minute_type_stays_on_half_hour_grid():
+    starts = domain.generate_slot_starts(event_type(45), NOW)
+    for day_starts in _group_by_day(starts).values():
+        assert len(day_starts) == 17
+        assert all(b - a == timedelta(minutes=30) for a, b in pairwise(day_starts))
+        anchor = domain.day_anchor_utc(day_starts[0].astimezone(domain.OWNER_TIMEZONE).date())
+        assert all((s - anchor) % timedelta(minutes=30) == timedelta(0) for s in day_starts)
+
+
+def test_non_multiple_of_thirty_duration_last_start_fits_business_hours():
+    starts = domain.generate_slot_starts(event_type(45), NOW)
+    for day_starts in _group_by_day(starts).values():
+        last = day_starts[-1]
+        assert last + timedelta(minutes=45) <= domain.day_end_utc(last.astimezone(domain.OWNER_TIMEZONE).date())
 
 
 def test_slot_starting_exactly_now_is_offered():
@@ -137,8 +161,9 @@ def test_540_minute_event_type_has_one_slot_per_day():
 def test_occupied_slot_disappears():
     occupied = [OccupiedInterval(datetime(2026, 8, 12, 7, 0, tzinfo=UTC), datetime(2026, 8, 12, 8, 0, tzinfo=UTC))]
     starts = domain.generate_slot_starts(event_type(60), NOW, occupied)
-    assert datetime(2026, 8, 12, 7, 0, tzinfo=UTC) not in starts
-    assert len(starts) == 14 * 9 - 1
+    for hidden in [datetime(2026, 8, 12, 6, 30, tzinfo=UTC), datetime(2026, 8, 12, 7, 0, tzinfo=UTC), datetime(2026, 8, 12, 7, 30, tzinfo=UTC)]:
+        assert hidden not in starts
+    assert len(starts) == 14 * 17 - 3
 
 
 # ---------- Overlap matrix ----------

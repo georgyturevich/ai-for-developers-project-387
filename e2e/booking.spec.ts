@@ -51,26 +51,39 @@ async function openEventTypeFromCatalog(page: Page, slug: string): Promise<void>
   await expect(page.getByRole("heading", { name: eventTypeName(slug) })).toBeVisible();
 }
 
-// Books the first offered free Slot through the UI and lands on the
-// confirmation screen. Returns the booked Slot start (UTC ISO).
-async function bookFirstFreeSlot(
-  page: Page,
-  guest: { name: string; email: string; comment: string },
-): Promise<string> {
+// Picks the first offered free Slot and lands on the booking form. Returns the
+// chosen Slot start (UTC ISO).
+async function pickFirstFreeSlot(page: Page): Promise<string> {
   const slotButton = page.getByRole("button", { name: SLOT_BUTTON }).first();
   await slotButton.click();
   await page.getByRole("button", { name: "Продолжить" }).click();
 
   const startIso = new URL(page.url()).searchParams.get("start");
   expect(startIso).toBeTruthy();
+  return startIso as string;
+}
 
+async function fillBookingForm(
+  page: Page,
+  guest: { name: string; email: string; comment: string },
+): Promise<void> {
   await page.getByLabel("Имя").fill(guest.name);
   await page.getByLabel("Email").fill(guest.email);
   await page.getByLabel("Комментарий").fill(guest.comment);
+}
+
+// Books the first offered free Slot through the UI and lands on the
+// confirmation screen. Returns the booked Slot start (UTC ISO).
+async function bookFirstFreeSlot(
+  page: Page,
+  guest: { name: string; email: string; comment: string },
+): Promise<string> {
+  const startIso = await pickFirstFreeSlot(page);
+  await fillBookingForm(page, guest);
   await page.getByRole("button", { name: "Записаться" }).click();
 
   await expect(page.getByText("Вы записаны")).toBeVisible();
-  return startIso as string;
+  return startIso;
 }
 
 test.describe("e2e scenarios (docs/e2e-scenarios.md)", () => {
@@ -150,5 +163,64 @@ test.describe("e2e scenarios (docs/e2e-scenarios.md)", () => {
     const card = page.locator('[data-slot="card"]').filter({ hasText: eventTypeName(slug) });
     await expect(card).toBeVisible();
     await expect(card).toContainText(`${EVENT_DURATION} мин`);
+  });
+
+  test("S5 — a losing Guest sees a conflict, not a success", async ({ browser }) => {
+    const slug = uniqueSlug("s5");
+    const guestA = uniqueGuest("s5a");
+    const guestB = uniqueGuest("s5b");
+    const conflictMessage = "Этот слот только что заняли. Вернитесь и выберите другое время.";
+
+    await createEventTypeViaApi(slug);
+
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+    const pageA = await contextA.newPage();
+    const pageB = await contextB.newPage();
+
+    try {
+      await openEventTypeFromCatalog(pageA, slug);
+      await openEventTypeFromCatalog(pageB, slug);
+
+      const startA = await pickFirstFreeSlot(pageA);
+      const startB = await pickFirstFreeSlot(pageB);
+      expect(startA).toBe(startB);
+
+      await fillBookingForm(pageA, guestA);
+      await fillBookingForm(pageB, guestB);
+
+      await Promise.all([
+        pageA.getByRole("button", { name: "Записаться" }).click(),
+        pageB.getByRole("button", { name: "Записаться" }).click(),
+      ]);
+
+      const successA = pageA.getByText("Вы записаны");
+      const successB = pageB.getByText("Вы записаны");
+      const conflictA = pageA.getByText(conflictMessage);
+      const conflictB = pageB.getByText(conflictMessage);
+
+      // Both Guests settle: exactly one confirmation and exactly one conflict.
+      await expect
+        .poll(
+          async () => {
+            const winners = [await successA.isVisible(), await successB.isVisible()].filter(Boolean).length;
+            const conflicts = [await conflictA.isVisible(), await conflictB.isVisible()].filter(Boolean).length;
+            return { winners, conflicts };
+          },
+          { timeout: 15_000 },
+        )
+        .toEqual({ winners: 1, conflicts: 1 });
+
+      const aWins = await successA.isVisible();
+      const winner = aWins ? pageA : pageB;
+      const loser = aWins ? pageB : pageA;
+
+      await expect(winner.getByText("Запись подтверждена. Отменить или перенести её нельзя")).toBeVisible();
+      await expect(loser.getByText(conflictMessage)).toBeVisible();
+      await expect(loser.getByText("Вы записаны")).not.toBeVisible();
+    } finally {
+      await contextA.close();
+      await contextB.close();
+    }
   });
 });

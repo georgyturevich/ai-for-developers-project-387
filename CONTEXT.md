@@ -21,8 +21,12 @@ A named kind of appointment defined by the Owner: an owner-provided slug id, nam
 _Avoid_: booking kind, meeting type, event
 
 **Slot** (ru: «слот»):
-A time interval inside Business Hours that a Guest can book for a chosen Event Type; its duration equals that Event Type's duration. Starts lie on a grid anchored at 09:00, stepping by the Event Type's duration, and a Slot must fit entirely within Business Hours. A Slot is either free or occupied: occupied means its interval overlaps an existing Booking's interval. Intervals are half-open — `[start, start + duration)` — so one Slot ending exactly when another begins is not an overlap. A Slot is in the past when its start precedes the current moment; past Slots are never offered.
+A time interval inside Business Hours that a Guest can book for a chosen Event Type; its duration equals that Event Type's duration. Starts lie on the **Slot Grid**, and a Slot must fit entirely within Business Hours. A Slot is either free or occupied: occupied means its interval overlaps an existing Booking's interval. Intervals are half-open — `[start, start + duration)` — so one Slot ending exactly when another begins is not an overlap. A Slot is in the past when its start precedes the current moment; past Slots are never offered.
 _Avoid_: time slot, availability
+
+**Slot Grid** (ru: «сетка слотов»):
+The fixed set of Slot start times within Business Hours: anchored at 09:00 in the Owner's timezone and stepping every 30 minutes, independent of the Event Type's duration. A Slot must still fit entirely within Business Hours, so the last offered start is the latest grid point whose Slot ends by 18:00.
+_Avoid_: grid step by duration, hourly grid
 
 **Booking** (ru: «бронирование», «запись», «встреча»):
 A Guest's reservation of one Slot for one Event Type, holding the Guest's name, email and optional comment. No two Bookings may overlap in time, regardless of Event Type; intervals are half-open, so back-to-back Bookings are allowed. A Booking is upcoming until its end (start + duration) has passed; the Owner's upcoming list shows ongoing and future Bookings, earliest first. Bookings cannot be cancelled or rescheduled.

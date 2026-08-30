@@ -7,7 +7,8 @@ store internals.
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from itertools import pairwise
 
 from tests.conftest import EVENT_TYPE, NOW, MutableClock, api_client, api_client_with_clock
 
@@ -87,6 +88,65 @@ async def test_framework_422_never_leaks():
         assert body["code"] == "validation_failed"
 
 
+# ---------- Ticket 33: strict contract scalars ----------
+
+
+async def test_boolean_duration_is_rejected_not_coerced():
+    async with api_client() as client:
+        response = await client.post("/event-types", json={**EVENT_TYPE, "durationInMinutes": True})
+        assert response.status_code == 400
+        body = response.json()
+        assert set(body) == {"code", "message"}
+        assert body["code"] == "validation_failed"
+
+
+async def test_non_integral_duration_is_rejected():
+    async with api_client() as client:
+        for duration in [60.0, 60.5, 1.0]:
+            response = await client.post("/event-types", json={**EVENT_TYPE, "durationInMinutes": duration})
+            assert response.status_code == 400, duration
+            assert response.json()["code"] == "validation_failed"
+
+
+async def test_integral_duration_in_range_still_accepted():
+    async with api_client() as client:
+        response = await client.post("/event-types", json={**EVENT_TYPE, "durationInMinutes": 60})
+        assert response.status_code == 201
+
+
+async def test_booking_start_without_offset_is_validation_failed_not_500():
+    async with api_client() as client:
+        await client.post("/event-types", json=EVENT_TYPE)
+        response = await client.post(
+            "/bookings",
+            json={"eventTypeId": "strizhka", "start": "2026-08-12T07:00:00", "guest": {"name": "A", "email": "a@example.com"}},
+        )
+        assert response.status_code == 400
+        assert response.json()["code"] == "validation_failed"
+
+
+async def test_booking_start_with_offset_is_normalized_to_utc():
+    async with api_client() as client:
+        await client.post("/event-types", json=EVENT_TYPE)
+        response = await client.post(
+            "/bookings",
+            json={"eventTypeId": "strizhka", "start": "2026-08-12T10:00:00+03:00", "guest": {"name": "A", "email": "a@example.com"}},
+        )
+        assert response.status_code == 201
+        assert response.json()["start"] == "2026-08-12T07:00:00Z"
+
+
+async def test_booking_start_with_negative_offset_is_normalized_to_utc():
+    async with api_client() as client:
+        await client.post("/event-types", json=EVENT_TYPE)
+        response = await client.post(
+            "/bookings",
+            json={"eventTypeId": "strizhka", "start": "2026-08-12T04:00:00-03:00", "guest": {"name": "A", "email": "a@example.com"}},
+        )
+        assert response.status_code == 201
+        assert response.json()["start"] == "2026-08-12T07:00:00Z"
+
+
 async def test_error_body_is_uniform():
     async with api_client() as client:
         responses = [
@@ -99,6 +159,91 @@ async def test_error_body_is_uniform():
             assert set(response.json()) == {"code", "message"}
 
 
+# ---------- Ticket 35: field-length limits and request-body cap ----------
+
+MAX_NAME = 200
+MAX_DESCRIPTION = 2000
+MAX_GUEST_NAME = 200
+MAX_EMAIL = 320
+MAX_COMMENT = 2000
+MAX_SLUG = 100
+
+
+async def test_overlong_slug_is_validation_failed():
+    async with api_client() as client:
+        response = await client.post("/event-types", json={**EVENT_TYPE, "id": "a" * (MAX_SLUG + 1)})
+        assert response.status_code == 400
+        assert response.json()["code"] == "validation_failed"
+
+
+async def test_overlong_event_type_name_is_validation_failed():
+    async with api_client() as client:
+        response = await client.post("/event-types", json={**EVENT_TYPE, "name": "x" * (MAX_NAME + 1)})
+        assert response.status_code == 400
+        assert response.json()["code"] == "validation_failed"
+
+
+async def test_overlong_event_type_description_is_validation_failed():
+    async with api_client() as client:
+        response = await client.post("/event-types", json={**EVENT_TYPE, "description": "x" * (MAX_DESCRIPTION + 1)})
+        assert response.status_code == 400
+        assert response.json()["code"] == "validation_failed"
+
+
+async def test_overlong_guest_fields_are_validation_failed():
+    async with api_client() as client:
+        await client.post("/event-types", json=EVENT_TYPE)
+        for field, overlong in [
+            ("name", "x" * (MAX_GUEST_NAME + 1)),
+            ("email", "x" * (MAX_EMAIL + 1) + "@example.com"),
+            ("comment", "x" * (MAX_COMMENT + 1)),
+        ]:
+            guest = {"name": "A", "email": "a@example.com"}
+            guest[field] = overlong
+            response = await client.post(
+                "/bookings",
+                json={"eventTypeId": "strizhka", "start": "2026-08-12T07:00:00Z", "guest": guest},
+            )
+            assert response.status_code == 400, field
+            assert response.json()["code"] == "validation_failed", field
+
+
+async def test_payloads_at_max_length_boundaries_still_succeed():
+    async with api_client() as client:
+        response = await client.post(
+            "/event-types",
+            json={
+                "id": "a" * MAX_SLUG,
+                "name": "x" * MAX_NAME,
+                "description": "y" * MAX_DESCRIPTION,
+                "durationInMinutes": 30,
+            },
+        )
+        assert response.status_code == 201
+        # email: the format check caps the effective length below the documented
+        # 320, so the boundary is exercised with a valid address.
+        booking_response = await client.post(
+            "/bookings",
+            json={
+                "eventTypeId": "a" * MAX_SLUG,
+                "start": "2026-08-12T07:00:00Z",
+                "guest": {"name": "n" * MAX_GUEST_NAME, "email": "ivan.petrov@example.com", "comment": "c" * MAX_COMMENT},
+            },
+        )
+        assert booking_response.status_code == 201
+
+
+async def test_request_body_over_64_kib_is_validation_failed():
+    async with api_client() as client:
+        huge = "x" * (2 * 1024 * 1024)
+        response = await client.post(
+            "/event-types",
+            json={**EVENT_TYPE, "name": huge},
+        )
+        assert response.status_code == 400
+        assert response.json()["code"] == "validation_failed"
+
+
 # ---------- Ticket 03: list free Slots ----------
 
 
@@ -108,11 +253,45 @@ async def test_slots_list_across_the_whole_window():
         response = await client.get("/event-types/strizhka/slots")
         assert response.status_code == 200
         slots = response.json()
-        assert len(slots) == 14 * 9
+        assert len(slots) == 14 * 17
         assert slots[0] == {"start": "2026-08-12T06:00:00Z"}
         assert slots[-1] == {"start": "2026-08-25T14:00:00Z"}
         starts = [slot["start"] for slot in slots]
         assert starts == sorted(set(starts))
+
+
+async def test_sixty_minute_type_steps_every_thirty_minutes():
+    async with api_client() as client:
+        await client.post("/event-types", json=EVENT_TYPE)
+        starts = [slot["start"] for slot in (await client.get("/event-types/strizhka/slots")).json()]
+        for a, b in pairwise(starts):
+            a_dt, b_dt = datetime.fromisoformat(a).astimezone(UTC), datetime.fromisoformat(b).astimezone(UTC)
+            if a_dt.date() != b_dt.date():
+                continue  # day boundary: last slot of day N, first of day N+1
+            assert (b_dt - a_dt).total_seconds() // 60 == 30
+
+
+async def test_forty_five_minute_type_yields_half_hour_grid_starts():
+    async with api_client() as client:
+        await client.post("/event-types", json={**EVENT_TYPE, "id": "masazh", "durationInMinutes": 45})
+        starts = [slot["start"] for slot in (await client.get("/event-types/masazh/slots")).json()]
+        assert len(starts) == 14 * 17
+        for start in starts:
+            minute = datetime.fromisoformat(start).astimezone(UTC).minute
+            assert minute in (0, 30)
+        last = datetime.fromisoformat(starts[-1]).astimezone(UTC)
+        assert last + timedelta(minutes=45) <= datetime(2026, 8, 25, 15, 0, tzinfo=UTC)
+
+
+async def test_off_grid_booking_start_is_validation_failed():
+    async with api_client() as client:
+        await client.post("/event-types", json=EVENT_TYPE)
+        response = await client.post(
+            "/bookings",
+            json={"eventTypeId": "strizhka", "start": "2026-08-12T07:15:00Z", "guest": {"name": "A", "email": "a@example.com"}},
+        )
+        assert response.status_code == 400
+        assert response.json()["code"] == "validation_failed"
 
 
 async def test_slots_never_in_the_past():
@@ -177,15 +356,14 @@ async def test_booking_ids_increment_from_one():
         assert second.json()["id"] == 2
 
 
-async def test_off_grid_start_is_validation_failed():
+async def test_half_hour_start_is_valid_for_sixty_minute_type():
     async with api_client() as client:
         await client.post("/event-types", json=EVENT_TYPE)
         response = await client.post(
             "/bookings",
             json={"eventTypeId": "strizhka", "start": "2026-08-12T07:30:00Z", "guest": {"name": "A", "email": "a@example.com"}},
         )
-        assert response.status_code == 400
-        assert response.json()["code"] == "validation_failed"
+        assert response.status_code == 201
 
 
 async def test_past_start_is_validation_failed():
@@ -274,7 +452,8 @@ async def test_booked_slot_disappears_from_listing():
         await client.post("/bookings", json={"eventTypeId": "strizhka", "start": "2026-08-12T07:00:00Z", "guest": {"name": "A", "email": "a@example.com"}})
         after = await client.get("/event-types/strizhka/slots")
         assert {"start": "2026-08-12T07:00:00Z"} not in after.json()
-        assert len(after.json()) == len(before.json()) - 1
+        # The occupied hour also hides the neighbouring half-hour starts.
+        assert len(after.json()) == len(before.json()) - 3
 
 
 async def test_double_booking_race_yields_one_success_one_conflict():
