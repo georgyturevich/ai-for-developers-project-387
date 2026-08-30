@@ -15,7 +15,7 @@ on:
         default: "opencode/big-pickle"
         type: string
   schedule:
-    - cron: "0 * * * *" 
+    - cron: "17 * * * *" 
 jobs:
   opencode-review:
     runs-on: ubuntu-latest
