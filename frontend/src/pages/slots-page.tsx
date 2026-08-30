@@ -11,6 +11,7 @@ import {
   OWNER_TIMEZONE_LABEL,
   bookingWindowDays,
   formatDayChoiceLabel,
+  formatDayLabel,
   formatTimeRange,
   groupByDay,
   ownerTodayKey,
@@ -90,6 +91,7 @@ export function SlotsPage() {
               key={day}
               variant={day === currentDay ? "default" : "outline"}
               disabled={!slotsByDay.has(day)}
+              title={formatDayLabel(day)}
               onClick={() => {
                 setSelectedDay(day);
                 setSelectedStart(null);

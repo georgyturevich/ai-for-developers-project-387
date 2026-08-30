@@ -97,6 +97,12 @@ describe("formatDayChoiceLabel", () => {
     expect(formatDayChoiceLabel("2026-08-12", now)).toBe("Завтра");
   });
 
+  test("renders 'Завтра' across a month boundary", () => {
+    const monthEnd = new Date("2026-08-31T12:00:00Z"); // день владельца — 31 авг.
+    expect(formatDayChoiceLabel("2026-09-01", monthEnd)).toBe("Завтра");
+    expect(formatDayChoiceLabel("2026-08-31", monthEnd)).toBe("Сегодня");
+  });
+
   test("falls back to weekday and date for later days", () => {
     expect(formatDayChoiceLabel("2026-08-13", now)).toBe("чт, 13 авг.");
   });
