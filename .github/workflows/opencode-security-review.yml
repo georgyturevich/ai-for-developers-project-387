@@ -1,0 +1,32 @@
+name: OpenCode Security Review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+jobs:
+  opencode-security-review:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Нужен для аутентификации через GitHub Actions
+      contents: read # Достаточно для чтения кода и diff
+      pull-requests: read # Достаточно для чтения данных PR
+      issues: write # Нужно, чтобы оставлять комментарии в PR
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Run OpenCode security review
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        with:
+          model: opencode/big-pickle
+          prompt: |
+            Review this pull request for security issues only:
+            - Find injections (SQL, command, XSS, path traversal)
+            - Check authentication and authorization flaws
+            - Look for leaked secrets or credentials
+            - Flag dangerous deserialization and unsafe file operations
+            - Ignore style, readability, and performance issues
+            - Only comment on code changed in this PR
+            - Leave actionable, concise comments
