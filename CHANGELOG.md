@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/georgyturevich/ai-for-developers-project-387/compare/cal-bookings-api-v0.7.0...cal-bookings-api-v0.8.0) (2026-08-30)
+
+
+### Features
+
+* **frontend:** add build date next to commit hash in footer ([#9](https://github.com/georgyturevich/ai-for-developers-project-387/issues/9)) ([4110053](https://github.com/georgyturevich/ai-for-developers-project-387/commit/41100530f706e3c20a45179def760bb431f288ea))
+
 ## [0.7.0](https://github.com/georgyturevich/ai-for-developers-project-387/compare/cal-bookings-api-v0.6.0...cal-bookings-api-v0.7.0) (2026-08-30)
 
 
