@@ -31,7 +31,7 @@ export function Layout() {
               </span>
             )}
             {import.meta.env.VITE_BUILD_DATE && (
-              <span className="ml-2 text-muted-foreground/60">
+              <span className="ml-2 text-gray-500">
                 build date: {import.meta.env.VITE_BUILD_DATE}
               </span>
             )}
