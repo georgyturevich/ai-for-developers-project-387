@@ -1,7 +1,7 @@
 name: OpenCode Code Audit
 on:
   schedule:
-    - cron: "0 * * * *" # Every Monday at 9am UTC
+    - cron: "0 * * * *" 
 jobs:
   opencode-review:
     runs-on: ubuntu-latest
