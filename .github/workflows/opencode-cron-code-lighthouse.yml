@@ -19,7 +19,7 @@ on:
         default: "opencode/big-pickle"
         type: string
   schedule:
-    - cron: "57 * * * *" # Every Monday at 9am UTC
+    - cron: "57 * * * *"
 jobs:
   opencode-review:
     runs-on: ubuntu-latest
