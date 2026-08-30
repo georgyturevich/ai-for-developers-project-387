@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/georgyturevich/ai-for-developers-project-387/compare/cal-bookings-api-v0.6.0...cal-bookings-api-v0.7.0) (2026-08-30)
+
+
+### Features
+
+* update footer brand label to N2 ([#4](https://github.com/georgyturevich/ai-for-developers-project-387/issues/4)) ([9a804a6](https://github.com/georgyturevich/ai-for-developers-project-387/commit/9a804a6ca422997482cf6ad03ce8242715dfd264))
+
 ## [0.6.0](https://github.com/georgyturevich/ai-for-developers-project-387/compare/cal-bookings-api-v0.5.0...cal-bookings-api-v0.6.0) (2026-08-30)
 
 
