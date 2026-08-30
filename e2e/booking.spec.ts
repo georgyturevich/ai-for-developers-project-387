@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { dayKeyInOwnerTz, formatDayLabel, formatTimeRange } from "../frontend/src/lib/datetime";
+import { dayKeyInOwnerTz, formatDayChoiceLabel, formatTimeRange } from "../frontend/src/lib/datetime";
 
 const BACKEND_URL = "http://localhost:8000";
 const FRONTEND_URL = "http://localhost:5173";
@@ -112,7 +112,7 @@ test.describe("e2e scenarios (docs/e2e-scenarios.md)", () => {
     const bookedStart = await bookFirstFreeSlot(page, guest);
 
     await page.goto(`${FRONTEND_URL}/types/${slug}`);
-    const dayLabel = formatDayLabel(dayKeyInOwnerTz(bookedStart));
+    const dayLabel = formatDayChoiceLabel(dayKeyInOwnerTz(bookedStart));
     const timeLabel = formatTimeRange(bookedStart, EVENT_DURATION);
 
     const bookedDay = page.getByRole("button", { name: dayLabel });
