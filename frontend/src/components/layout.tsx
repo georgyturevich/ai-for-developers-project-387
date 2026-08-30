@@ -30,6 +30,11 @@ export function Layout() {
                 #{import.meta.env.VITE_COMMIT_HASH}
               </span>
             )}
+            {import.meta.env.VITE_BUILD_DATE && (
+              <span className="ml-2 text-gray-500">
+                build date: {import.meta.env.VITE_BUILD_DATE}
+              </span>
+            )}
           </span>
         </div>
       </footer>
