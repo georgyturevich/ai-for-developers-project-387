@@ -1,5 +1,23 @@
-name: OpenCode Code Audit
+name: OpenCode Lighthouse Audit
 on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: "Task for OpenCode"
+        required: true
+        type: string
+        default: |
+          Read ./lighthouse-report.json.
+          Compare LCP, CLS, INP with the values in
+          docs/performance-baseline.md.
+          For metrics that degraded by more than 10%,
+          identify likely culprits in recent commits and
+          create an issue with specific recommendations.
+      model:
+        description: "Model to use"
+        required: false
+        default: "opencode/big-pickle"
+        type: string
   schedule:
     - cron: "57 * * * *" # Every Monday at 9am UTC
 jobs:
@@ -26,11 +44,5 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode/big-pickle
-          prompt: |
-            Read ./lighthouse-report.json.
-            Compare LCP, CLS, INP with the values in
-            docs/performance-baseline.md.
-            For metrics that degraded by more than 10%,
-            identify likely culprits in recent commits and
-            create an issue with specific recommendations.
+          model: ${{ inputs.model }}
+          prompt: ${{ inputs.prompt }}
