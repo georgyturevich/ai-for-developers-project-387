@@ -17,7 +17,7 @@ RUN cd frontend && npm ci
 
 COPY main.tsp tspconfig.yaml ./
 COPY frontend ./frontend
-RUN cd frontend && VITE_API_URL="" npm run build
+RUN cd frontend && VITE_API_URL="" VITE_COMMIT_HASH="$(git rev-parse --short HEAD)" npm run build
 
 # ---- runtime stage: FastAPI serving the API + the built SPA ----
 FROM python:3.14-slim AS runtime
