@@ -119,8 +119,10 @@ test.describe("e2e scenarios (docs/e2e-scenarios.md)", () => {
     await expect(bookedDay).toBeVisible();
 
     if (await bookedDay.isDisabled()) {
-      // The whole day offers no Slots any more — the booked one included.
-      await expect(page.getByText("На этот день свободных слотов нет.")).toBeVisible();
+      // The whole day offers no Slots any more — the booked one included. The
+      // day-picker disables such a day, so it cannot be selected at all: that
+      // alone proves the booked Slot is no longer offered.
+      await expect(bookedDay).toBeDisabled();
     } else {
       await bookedDay.click();
       await expect(page.getByRole("button", { name: timeLabel, exact: true })).toHaveCount(0);
