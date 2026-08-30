@@ -1,0 +1,26 @@
+name: OpenCode Code Audit
+on:
+  schedule:
+    - cron: "0 * * * *" # Every Monday at 9am UTC
+jobs:
+  opencode-review:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Нужен для аутентификации через GitHub Actions
+      contents: read # Достаточно для чтения кода и diff
+      pull-requests: read # Достаточно для чтения данных PR
+      issues: write # Нужно, чтобы оставлять комментарии в PR
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Run OpenCode audit
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        with:
+          model: opencode/big-pickle
+          prompt: |
+            Review the codebase for TODO, FIXME, and HACK comments.
+            Group them by priority and create an issue with a summary.
