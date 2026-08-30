@@ -23,7 +23,14 @@ export function Layout() {
           <Link to="/owner" className="text-muted-foreground hover:text-foreground hover:underline">
             Владельцу
           </Link>
-          <span className="text-muted-foreground">&copy; Cal Bookings Lab N2</span>
+          <span className="text-muted-foreground">
+            &copy; Cal Bookings Lab N2
+            {import.meta.env.VITE_COMMIT_HASH && (
+              <span className="ml-2 text-muted-foreground/60">
+                #{import.meta.env.VITE_COMMIT_HASH}
+              </span>
+            )}
+          </span>
         </div>
       </footer>
       <Toaster richColors position="top-center" />
