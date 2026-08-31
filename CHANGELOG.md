@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/georgyturevich/ai-for-developers-project-387/compare/cal-bookings-api-v0.9.0...cal-bookings-api-v0.9.1) (2026-08-31)
+
+
+### Bug Fixes
+
+* **ci:** default model and prompt for scheduled opencode job ([1c26453](https://github.com/georgyturevich/ai-for-developers-project-387/commit/1c26453c97e268982f7aa8d58d9b71274c6024fe))
+
 ## [0.9.0](https://github.com/georgyturevich/ai-for-developers-project-387/compare/cal-bookings-api-v0.8.0...cal-bookings-api-v0.9.0) (2026-08-30)
 
 
