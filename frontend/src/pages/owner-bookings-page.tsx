@@ -30,7 +30,9 @@ export function OwnerBookingsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold">Предстоящие записи</h1>
+          <h1 className="text-2xl font-semibold">
+            Предстоящие записи <Badge variant="secondary">{query.data.length}</Badge>
+          </h1>
           <p className="text-sm text-muted-foreground">
             по московскому времени ({OWNER_TIMEZONE_LABEL})
           </p>
