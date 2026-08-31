@@ -4,25 +4,20 @@ on:
     inputs:
       prompt:
         description: "Task for OpenCode"
-        required: true
+        required: false
         type: string
-        default: |
-          Read ./lighthouse-report.json.
-          Compare LCP, CLS, INP with the values in
-          docs/performance-baseline.md.
-          For metrics that degraded by more than 10%,
-          identify likely culprits in recent commits and
-          create an issue with specific recommendations.
       model:
         description: "Model to use"
         required: false
-        default: "opencode/big-pickle"
         type: string
   schedule:
     - cron: "43 * * * *"
 jobs:
   opencode-review:
     runs-on: ubuntu-latest
+    env:
+      DEFAULT_MODEL: "opencode/big-pickle"
+      DEFAULT_PROMPT: "Read ./lighthouse-report.json. Compare LCP, CLS, INP with the values in docs/performance-baseline.md. For metrics that degraded by more than 10%, identify likely culprits in recent commits and create an issue with specific recommendations."
     permissions:
       id-token: write # Нужен для аутентификации через GitHub Actions
       contents: read # Достаточно для чтения кода и diff
@@ -44,5 +39,5 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: ${{ inputs.model }}
-          prompt: ${{ inputs.prompt }}
+          model: ${{ inputs.model || env.DEFAULT_MODEL }}
+          prompt: ${{ inputs.prompt || env.DEFAULT_PROMPT }}
