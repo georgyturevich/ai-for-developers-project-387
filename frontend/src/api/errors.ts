@@ -6,6 +6,7 @@ export const API_ERROR_CODES = {
   eventTypeNotFound: "event_type_not_found",
   duplicateSlug: "duplicate_slug",
   slotUnavailable: "slot_unavailable",
+  bookingNotFound: "booking_not_found",
 } as const;
 
 export class ContractError extends Error {

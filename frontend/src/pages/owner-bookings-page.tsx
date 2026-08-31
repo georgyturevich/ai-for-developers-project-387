@@ -1,14 +1,26 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router";
+import { api } from "@/api/client";
+import { unwrap } from "@/api/errors";
 import { useUpcomingBookings } from "@/api/queries";
 import { PageError } from "@/components/page-error";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OWNER_TIMEZONE_LABEL, formatDayLabel, formatTimeRange, groupByDay } from "@/lib/datetime";
+import type { Booking } from "@/api/types";
 
 export function OwnerBookingsPage() {
   const query = useUpcomingBookings();
+  const queryClient = useQueryClient();
+
+  const cancelMutation = useMutation({
+    mutationFn: (bookingId: number) => unwrap(api.DELETE("/bookings/{bookingId}", { params: { path: { bookingId } } })),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    },
+  });
 
   if (query.isPending) {
     return (
@@ -53,28 +65,52 @@ export function OwnerBookingsPage() {
             </h2>
             <div className="grid gap-3">
               {bookings.map((booking) => (
-                <Card key={booking.id}>
-                  <CardContent className="flex flex-col gap-1">
-                    <p className="font-medium">
-                      {formatTimeRange(booking.start, booking.eventType.durationInMinutes)} —{" "}
-                      {booking.eventType.name}
-                    </p>
-                    <p>
-                      {booking.guest.name} ·{" "}
-                      <a className="text-primary hover:underline" href={`mailto:${booking.guest.email}`}>
-                        {booking.guest.email}
-                      </a>
-                    </p>
-                    {booking.guest.comment ? (
-                      <p className="text-sm text-muted-foreground">{booking.guest.comment}</p>
-                    ) : null}
-                  </CardContent>
-                </Card>
+                <BookingCard
+                  key={booking.id}
+                  booking={booking}
+                  onCancel={() => cancelMutation.mutate(booking.id)}
+                  isCancelling={cancelMutation.isPending}
+                />
               ))}
             </div>
           </section>
         ))
       )}
     </div>
+  );
+}
+
+function BookingCard({
+  booking,
+  onCancel,
+  isCancelling,
+}: {
+  booking: Booking;
+  onCancel: () => void;
+  isCancelling: boolean;
+}) {
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-1">
+        <div className="flex items-start justify-between gap-3">
+          <p className="font-medium">
+            {formatTimeRange(booking.start, booking.eventType.durationInMinutes)} —{" "}
+            {booking.eventType.name}
+          </p>
+          <Button variant="destructive" size="sm" onClick={onCancel} disabled={isCancelling}>
+            {isCancelling ? "Отменяем…" : "Отменить"}
+          </Button>
+        </div>
+        <p>
+          {booking.guest.name} ·{" "}
+          <a className="text-primary hover:underline" href={`mailto:${booking.guest.email}`}>
+            {booking.guest.email}
+          </a>
+        </p>
+        {booking.guest.comment ? (
+          <p className="text-sm text-muted-foreground">{booking.guest.comment}</p>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }

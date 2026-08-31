@@ -16,6 +16,10 @@ class SlotUnavailableError(Exception):
     pass
 
 
+class BookingNotFoundError(Exception):
+    pass
+
+
 class InMemoryStore:
     def __init__(self) -> None:
         self._event_types: dict[str, EventType] = {}
@@ -72,3 +76,11 @@ class InMemoryStore:
 
     def list_bookings(self) -> list[Booking]:
         return list(self._bookings)
+
+    def delete_booking(self, booking_id: int) -> None:
+        """Remove a booking by id. Raises BookingNotFoundError if absent."""
+        for index, booking in enumerate(self._bookings):
+            if booking.id == booking_id:
+                del self._bookings[index]
+                return
+        raise BookingNotFoundError(booking_id)
