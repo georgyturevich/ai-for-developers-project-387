@@ -1,7 +1,7 @@
 {
   "name": "cal-bookings-api",
   "private": true,
-  "version": "0.9.0",
+  "version": "0.9.1",
   "scripts": {
     "compile": "tsp compile .",
     "mock": "prism mock -p 4010 tsp-output/@typespec/openapi3/openapi.yaml",
