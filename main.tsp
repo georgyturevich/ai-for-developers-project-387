@@ -95,7 +95,7 @@ model GuestInfo {
   comment?: string;
 }
 
-@doc("Бронирование: резервация слота гостем. Отмена и перенос не поддерживаются.")
+@doc("Бронирование: резервация слота гостем. Перенос не поддерживается, отмена — через DELETE /bookings/{bookingId}.")
 model Booking {
   @doc("Серверный идентификатор.")
   @example(1)
@@ -127,7 +127,7 @@ model CreateBookingRequest {
 
 @doc("Единое тело ошибки.")
 model ApiError {
-  @doc("Машиночитаемый код: \"validation_failed\", \"event_type_not_found\", \"duplicate_slug\", \"slot_unavailable\".")
+  @doc("Машиночитаемый код: \"validation_failed\", \"event_type_not_found\", \"duplicate_slug\", \"slot_unavailable\", \"booking_not_found\".")
   @example("slot_unavailable")
   code: string;
 
@@ -170,6 +170,17 @@ op listUpcomingBookings(): {
   @statusCode statusCode: 200;
   @body body: Booking[];
 };
+
+@tag("Owner")
+@route("/bookings/{bookingId}")
+@delete
+@doc("""
+  Владелец: отменить бронирование. Бронирование удаляется, его слот снова становится доступен гостям.
+  404 — неизвестный идентификатор бронирования.
+  """)
+op cancelBooking(@path bookingId: int64): {
+  @statusCode statusCode: 204;
+} | NotFound;
 
 // ---------- Guest operations ----------
 

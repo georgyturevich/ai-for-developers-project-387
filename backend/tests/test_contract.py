@@ -39,6 +39,11 @@ schema = schemathesis.openapi.from_path(str(SPEC))
 def _pin_state_dependent_parameters(context, case, kwargs) -> None:
     if case.operation.path == "/event-types/{eventTypeId}/slots":
         case.path_parameters["eventTypeId"] = SEEDED_SLUG
+    elif case.operation.path == "/bookings/{bookingId}":
+        # Pin to an arbitrary integer: no booking is seeded, so every request
+        # hits the documented 404 path. Generated non-integer ids would surface
+        # an undeclared FastAPI validation 400 instead.
+        case.path_parameters["bookingId"] = 1
     elif case.operation.path == "/bookings" and case.operation.method.upper() == "POST" and isinstance(case.body, dict):
         case.body["eventTypeId"] = SEEDED_SLUG
         case.body["start"] = _future_seeded_start()

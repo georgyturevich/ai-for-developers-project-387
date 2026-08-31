@@ -501,3 +501,56 @@ async def test_ongoing_booking_shown_ended_booking_hidden():
         clock.value = datetime(2026, 8, 12, 8, 0, 0, tzinfo=UTC)  # 08:00Z: ended (end == now)
         hidden = await client.get("/bookings")
         assert hidden.json() == []
+
+
+# ---------- Cancel Booking ----------
+
+
+async def test_cancel_booking_returns_204_and_removes_it():
+    async with api_client() as client:
+        await client.post("/event-types", json=EVENT_TYPE)
+        created = await client.post(
+            "/bookings",
+            json={"eventTypeId": "strizhka", "start": "2026-08-12T07:00:00Z", "guest": {"name": "A", "email": "a@example.com"}},
+        )
+        booking_id = created.json()["id"]
+        response = await client.delete(f"/bookings/{booking_id}")
+        assert response.status_code == 204
+        assert response.content == b""
+        assert (await client.get("/bookings")).json() == []
+
+
+async def test_cancelled_booking_slot_reopens():
+    async with api_client() as client:
+        await client.post("/event-types", json=EVENT_TYPE)
+        created = await client.post(
+            "/bookings",
+            json={"eventTypeId": "strizhka", "start": "2026-08-12T07:00:00Z", "guest": {"name": "A", "email": "a@example.com"}},
+        )
+        booking_id = created.json()["id"]
+        assert {"start": "2026-08-12T07:00:00Z"} not in (await client.get("/event-types/strizhka/slots")).json()
+        await client.delete(f"/bookings/{booking_id}")
+        assert {"start": "2026-08-12T07:00:00Z"} in (await client.get("/event-types/strizhka/slots")).json()
+
+
+async def test_cancel_unknown_booking_404():
+    async with api_client() as client:
+        response = await client.delete("/bookings/999")
+        assert response.status_code == 404
+        body = response.json()
+        assert set(body) == {"code", "message"}
+        assert body["code"] == "booking_not_found"
+
+
+async def test_cancel_twice_second_is_404():
+    async with api_client() as client:
+        await client.post("/event-types", json=EVENT_TYPE)
+        created = await client.post(
+            "/bookings",
+            json={"eventTypeId": "strizhka", "start": "2026-08-12T07:00:00Z", "guest": {"name": "A", "email": "a@example.com"}},
+        )
+        booking_id = created.json()["id"]
+        assert (await client.delete(f"/bookings/{booking_id}")).status_code == 204
+        second = await client.delete(f"/bookings/{booking_id}")
+        assert second.status_code == 404
+        assert second.json()["code"] == "booking_not_found"

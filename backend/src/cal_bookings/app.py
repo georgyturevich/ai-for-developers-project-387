@@ -25,7 +25,12 @@ from cal_bookings.schemas import (
     Slug,
 )
 from cal_bookings.static import SPAStaticFiles
-from cal_bookings.store import DuplicateSlugError, InMemoryStore, SlotUnavailableError
+from cal_bookings.store import (
+    BookingNotFoundError,
+    DuplicateSlugError,
+    InMemoryStore,
+    SlotUnavailableError,
+)
 
 CORS_ALLOWED_ORIGIN = "http://localhost:5173"
 
@@ -220,6 +225,20 @@ def create_app(clock: Callable[[], datetime] | None = None) -> FastAPI:
         ]
         upcoming.sort(key=lambda booking: booking.start)
         return [_booking_response(booking, store.get_event_type(booking.event_type_id)) for booking in upcoming]
+
+    @app.delete(
+        "/bookings/{booking_id}",
+        status_code=204,
+        tags=["Owner"],
+    )
+    async def cancel_booking(
+        booking_id: int,
+        store: Annotated[InMemoryStore, Depends(get_store)],
+    ) -> None:
+        try:
+            store.delete_booking(booking_id)
+        except BookingNotFoundError:
+            raise http_error(404, "booking_not_found", f"Бронирование «{booking_id}» не найдено.")
 
     static_dir = os.environ.get("STATIC_DIR")
     if static_dir:
