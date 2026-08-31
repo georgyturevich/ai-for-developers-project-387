@@ -13,7 +13,7 @@ on:
   schedule:
     - cron: "17 * * * *" 
 jobs:
-  opencode-review:
+  opencode-code-audit:
     runs-on: ubuntu-latest
     env:
       DEFAULT_MODEL: "opencode/big-pickle"
