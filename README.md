@@ -27,3 +27,11 @@ commit messages and PR titles are `<type>[(<scope>)]: <subject>` with types from
 Direct pushes need a conventional commit message; squash merges need a
 conventional PR title; merge-commit PRs need every branch commit conventional.
 The convention is documented for agents in `AGENTS.md`.
+
+## Рефлексия
+- Удивило насколько просто можно начать настраивать автономную работу с задачами прямо из репозитория
+- С обратной стороны появляются какие-то баги доступа с которым нужно посидеть разобраться
+- Интересно взглянуть на связку Gitlab+Claude Code
+- Не совсем понятно почему нужно исключать реакцию на комиты сделанные ботом. В этом же и суть, что бы проводилось security/code ревью реквестов выполненных ботом
+- Почему то не всегда подхватывается conventional commits format, хотя он напрямую указан в AGENTS.md
+- В принципе пара задач которые я ставил выполнялись с первого прохода. Интересно было бы посмотреть на более сложные задачи
