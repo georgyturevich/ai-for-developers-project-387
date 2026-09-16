@@ -12,10 +12,22 @@ jobs:
       contents: read # Достаточно для чтения кода
       issues: write # Нужно, чтобы ставить метки и комментировать в issue
     steps:
+      - name: Apply needs-triage label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['needs-triage']
+            });
+
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+
       - name: Run OpenCode triage
         uses: anomalyco/opencode/github@latest
         env:
@@ -23,19 +35,49 @@ jobs:
         with:
           model: opencode/big-pickle
           prompt: |
-            You are triaging a newly opened GitHub issue.
+            You are triaging a newly opened GitHub issue. The issue already has a `needs-triage` label — do NOT add, remove or edit any labels.
 
-            1. Analyze the issue body.
-            2. Apply the `needs-triage` label to the issue.
-            3. Post a structured triage comment with:
-               - Goal: a one-sentence summary of what the reporter wants
-               - Scope: what likely needs to change (components, endpoints, files — only if inferrable from the codebase, otherwise "unknown")
-               - Acceptance criteria: concrete, checkable outcomes
-               - Open questions: anything the reporter must clarify to make it actionable
-            4. Adjust the triage label based on how actionable the issue is:
-               - Fully specified and self-contained -> replace `needs-triage` with `ready-for-agent`
-               - Requires human decisions or is too large for a single agent session -> replace with `ready-for-human`
-               - Missing key information the reporter must supply -> replace with `needs-info` and list exactly what is needed
-               - Otherwise keep `needs-triage` for a maintainer
+            Read the issue body and the relevant codebase, then post a structured triage comment with:
+            - Goal: a one-sentence summary of what the reporter wants
+            - Scope: what likely needs to change (components, endpoints, files — only if inferrable from the codebase, otherwise "unknown")
+            - Acceptance criteria: concrete, checkable outcomes
+            - Open questions: anything the reporter must clarify to make it actionable
+            - Recommended label: one of `ready-for-agent`, `ready-for-human`, or `needs-info`
 
-            Do not modify code or open pull requests. Analysis and labels only.
+            Do not modify code, create pull requests, or edit labels. Post the comment only.
+
+      - name: Apply final triage label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 10,
+              direction: 'desc'
+            });
+
+            const botComment = comments.find(c => c.user.type === 'Bot');
+            if (!botComment) return;
+
+            const body = botComment.body.toLowerCase();
+            let label = 'needs-triage';
+
+            if (body.includes('ready-for-agent')) label = 'ready-for-agent';
+            else if (body.includes('ready-for-human')) label = 'ready-for-human';
+            else if (body.includes('needs-info')) label = 'needs-info';
+
+            await github.rest.issues.removeLabel({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'needs-triage'
+            }).catch(() => {});
+
+            await github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: [label]
+            });
