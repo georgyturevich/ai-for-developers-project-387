@@ -1,0 +1,41 @@
+name: OpenCode Issue Triage
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  opencode-issue-triage:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Нужен для аутентификации через GitHub Actions
+      contents: read # Достаточно для чтения кода
+      issues: write # Нужно, чтобы ставить метки и комментировать в issue
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Run OpenCode triage
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        with:
+          model: opencode/big-pickle
+          prompt: |
+            You are triaging a newly opened GitHub issue.
+
+            1. Analyze the issue body.
+            2. Apply the `needs-triage` label to the issue.
+            3. Post a structured triage comment with:
+               - Goal: a one-sentence summary of what the reporter wants
+               - Scope: what likely needs to change (components, endpoints, files — only if inferrable from the codebase, otherwise "unknown")
+               - Acceptance criteria: concrete, checkable outcomes
+               - Open questions: anything the reporter must clarify to make it actionable
+            4. Adjust the triage label based on how actionable the issue is:
+               - Fully specified and self-contained -> replace `needs-triage` with `ready-for-agent`
+               - Requires human decisions or is too large for a single agent session -> replace with `ready-for-human`
+               - Missing key information the reporter must supply -> replace with `needs-info` and list exactly what is needed
+               - Otherwise keep `needs-triage` for a maintainer
+
+            Do not modify code or open pull requests. Analysis and labels only.
