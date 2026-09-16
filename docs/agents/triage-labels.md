@@ -12,4 +12,6 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
 
+Newly opened issues are auto-triaged by `.github/workflows/opencode-triage.yml`: it applies `needs-triage`, posts a structured breakdown comment, then moves the issue to `needs-info`, `ready-for-agent`, or `ready-for-human`. Re-triaging an issue that already carries one of these labels is usually unnecessary.
+
 Edit the right-hand column to match whatever vocabulary you actually use.
