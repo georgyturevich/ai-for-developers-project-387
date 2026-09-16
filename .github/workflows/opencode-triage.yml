@@ -35,16 +35,18 @@ jobs:
         with:
           model: opencode/big-pickle
           prompt: |
-            You are triaging a newly opened GitHub issue. The issue already has a `needs-triage` label — do NOT add, remove or edit any labels.
+            You are triaging a newly opened GitHub issue. This is a fast, read-only task.
 
-            Read the issue body and the relevant codebase, then post a structured triage comment with:
+            The issue already has a `needs-triage` label — do NOT add, remove or edit any labels. Do NOT modify code, do NOT create branches or pull requests, do NOT run builds or tests.
+
+            Analyze ONLY the issue text above (title + body), not the codebase. Then post ONE structured triage comment no longer than 120 words:
             - Goal: a one-sentence summary of what the reporter wants
-            - Scope: what likely needs to change (components, endpoints, files — only if inferrable from the codebase, otherwise "unknown")
+            - Scope: what likely needs to change (components, endpoints, files — only if obvious from the issue text, otherwise "unknown")
             - Acceptance criteria: concrete, checkable outcomes
             - Open questions: anything the reporter must clarify to make it actionable
             - Recommended label: one of `ready-for-agent`, `ready-for-human`, or `needs-info`
 
-            Do not modify code, create pull requests, or edit labels. Post the comment only.
+            Post the comment now. Do not explore the repository.
 
       - name: Apply final triage label
         uses: actions/github-script@v7
